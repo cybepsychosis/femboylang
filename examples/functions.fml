@@ -1,0 +1,10 @@
+nya greet(n):
+    returny "hai " + n + "!"
+
+uwu result = greet("femboy")
+hai result
+
+nya add(a, b):
+    returny a + b
+
+hai "2 + 3 = ", add(2, 3)

@@ -1,0 +1,5 @@
+uwu i = 0
+loopies i < 5:
+    hai "counting: ", i
+    uwu i = i + 1
+hai "done! nya!"

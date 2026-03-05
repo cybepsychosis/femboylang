@@ -1,0 +1,9 @@
+nya calculate(op, a, b):
+    baka op == "add":
+        returny a + b
+    baka op == "sub":
+        returny a - b
+    returny 0
+
+hai "10 + 20 = ", calculate("add", 10, 20)
+hai "50 - 30 = ", calculate("sub", 50, 30)

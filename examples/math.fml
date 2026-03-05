@@ -1,0 +1,12 @@
+uwu a = 10
+uwu b = 5
+
+hai "addition: ", (a + b)
+hai "subtraction: ", (a - b)
+hai "multiplication: ", (a * b)
+hai "division: ", (a / b)
+
+baka a > b:
+    hai "a is bigger than b"
+mou:
+    hai "b is bigger or equal"
