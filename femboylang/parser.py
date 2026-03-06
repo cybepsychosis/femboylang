@@ -1,37 +1,41 @@
+from typing import List, Optional, Union
 from .tokens import TokenType, Token
 from .ast_nodes import *
 
 class Parser:
+    """Recursive descent parser for FemboyLang."""
+
     def __init__(self, tokens: List[Token]):
         self.tokens = tokens
         self.pos = 0
 
-    def peek(self, n=0):
+    def peek(self, n: int = 0) -> Token:
         if self.pos + n >= len(self.tokens):
             return self.tokens[-1]
         return self.tokens[self.pos + n]
 
-    def advance(self):
+    def advance(self) -> Token:
         token = self.peek()
         self.pos += 1
         return token
 
-    def check(self, token_type):
+    def check(self, token_type: TokenType) -> bool:
         return self.peek().type == token_type
 
-    def match(self, *token_types):
+    def match(self, *token_types: TokenType) -> bool:
         for t in token_types:
             if self.check(t):
                 self.advance()
                 return True
         return False
 
-    def consume(self, token_type, message):
+    def consume(self, token_type: TokenType, message: str) -> Token:
         if self.check(token_type):
             return self.advance()
         raise SyntaxError(f"Parser Error: {message} at line {self.peek().line}, col {self.peek().column}")
 
-    def parse(self):
+    def parse(self) -> Program:
+        """Parses the entire program into an AST."""
         statements = []
         while not self.match(TokenType.EOF):
             stmt = self.parse_statement()
@@ -39,7 +43,7 @@ class Parser:
                 statements.append(stmt)
         return Program(statements)
 
-    def parse_statement(self):
+    def parse_statement(self) -> Optional[Statement]:
         if self.match(TokenType.NEWLINE):
             return None
         
@@ -58,14 +62,14 @@ class Parser:
         
         return self.parse_expression_statement()
 
-    def parse_variable_declaration(self):
+    def parse_variable_declaration(self) -> VariableDeclaration:
         name = self.consume(TokenType.IDENTIFIER, "Expect variable name after 'uwu'").value
         self.consume(TokenType.ASSIGN, "Expect '=' after variable name")
         value = self.parse_expression()
         self.consume_statement_end()
         return VariableDeclaration(name, value)
 
-    def parse_print_statement(self):
+    def parse_print_statement(self) -> PrintStatement:
         expressions = []
         expressions.append(self.parse_expression())
         while self.match(TokenType.COMMA):
@@ -73,7 +77,7 @@ class Parser:
         self.consume_statement_end()
         return PrintStatement(expressions)
 
-    def parse_function_declaration(self):
+    def parse_function_declaration(self) -> FunctionDeclaration:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name").value
         self.consume(TokenType.LPAREN, "Expect '(' after function name")
         params = []
@@ -86,7 +90,7 @@ class Parser:
         body = self.parse_block()
         return FunctionDeclaration(name, params, body)
 
-    def parse_if_statement(self):
+    def parse_if_statement(self) -> IfStatement:
         condition = self.parse_expression()
         self.consume(TokenType.COLON, "Expect ':' after condition")
         then_branch = self.parse_block()
@@ -96,20 +100,20 @@ class Parser:
             else_branch = self.parse_block()
         return IfStatement(condition, then_branch, else_branch)
 
-    def parse_loop_statement(self):
+    def parse_loop_statement(self) -> LoopStatement:
         condition = self.parse_expression()
         self.consume(TokenType.COLON, "Expect ':' after condition")
         body = self.parse_block()
         return LoopStatement(condition, body)
 
-    def parse_return_statement(self):
+    def parse_return_statement(self) -> ReturnStatement:
         value = None
         if not self.check(TokenType.NEWLINE) and not self.check(TokenType.EOF) and not self.check(TokenType.DEDENT):
             value = self.parse_expression()
         self.consume_statement_end()
         return ReturnStatement(value)
 
-    def parse_block(self):
+    def parse_block(self) -> List[Statement]:
         self.consume(TokenType.NEWLINE, "Expect newline before block")
         self.consume(TokenType.INDENT, "Expect indentation")
         statements = []
@@ -120,7 +124,7 @@ class Parser:
         self.consume(TokenType.DEDENT, "Expect dedentation after block")
         return statements
 
-    def parse_expression_statement(self):
+    def parse_expression_statement(self) -> Expression:
         expr = self.parse_expression()
         self.consume_statement_end()
         return expr
@@ -128,15 +132,14 @@ class Parser:
     def consume_statement_end(self):
         if self.match(TokenType.NEWLINE, TokenType.EOF):
             return
-        # If we are at dedent, it's also acceptable end of statement
         if self.check(TokenType.DEDENT):
             return
         raise SyntaxError(f"Expect end of statement/newline, got {self.peek().type} at line {self.peek().line}")
 
-    def parse_expression(self):
+    def parse_expression(self) -> Expression:
         return self.equality()
 
-    def equality(self):
+    def equality(self) -> Expression:
         expr = self.comparison()
         while self.match(TokenType.EQ, TokenType.NEQ):
             operator = self.tokens[self.pos - 1].value
@@ -144,7 +147,7 @@ class Parser:
             expr = BinaryExpression(expr, operator, right)
         return expr
 
-    def comparison(self):
+    def comparison(self) -> Expression:
         expr = self.term()
         while self.match(TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE):
             operator = self.tokens[self.pos - 1].value
@@ -152,7 +155,7 @@ class Parser:
             expr = BinaryExpression(expr, operator, right)
         return expr
 
-    def term(self):
+    def term(self) -> Expression:
         expr = self.factor()
         while self.match(TokenType.PLUS, TokenType.MINUS):
             operator = self.tokens[self.pos - 1].value
@@ -160,7 +163,7 @@ class Parser:
             expr = BinaryExpression(expr, operator, right)
         return expr
 
-    def factor(self):
+    def factor(self) -> Expression:
         expr = self.unary()
         while self.match(TokenType.MUL, TokenType.DIV):
             operator = self.tokens[self.pos - 1].value
@@ -168,14 +171,14 @@ class Parser:
             expr = BinaryExpression(expr, operator, right)
         return expr
 
-    def unary(self):
+    def unary(self) -> Expression:
         if self.match(TokenType.MINUS):
             operator = self.tokens[self.pos - 1].value
             right = self.unary()
             return UnaryExpression(operator, right)
         return self.call()
 
-    def call(self):
+    def call(self) -> Expression:
         expr = self.primary()
         if isinstance(expr, Identifier) and self.match(TokenType.LPAREN):
             args = []
@@ -187,10 +190,11 @@ class Parser:
             return CallExpression(expr.name, args)
         return expr
 
-    def primary(self):
+    def primary(self) -> Expression:
         if self.match(TokenType.BOOLEAN, TokenType.NUMBER, TokenType.STRING):
-            val = self.tokens[self.pos - 1].value
-            if self.tokens[self.pos-1].type == TokenType.BOOLEAN:
+            token = self.tokens[self.pos - 1]
+            val = token.value
+            if token.type == TokenType.BOOLEAN:
                 val = (val == 'True')
             return Literal(val)
         

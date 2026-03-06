@@ -1,3 +1,7 @@
+"""
+FemboyLang AST Node Definitions.
+Each node represents a construct in the language syntax tree.
+"""
 from dataclasses import dataclass, field
 from typing import List, Optional, Any
 

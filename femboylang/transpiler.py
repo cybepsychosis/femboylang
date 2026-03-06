@@ -1,46 +1,54 @@
+from typing import Any
 from .ast_nodes import *
 
 class Transpiler:
+    """The Transpiler converts the FemboyLang AST into Python source code."""
+
     def __init__(self):
         self.indent_level = 0
 
-    def get_indent(self):
+    def get_indent(self) -> str:
         return "    " * self.indent_level
 
-    def transpile(self, node):
+    def transpile(self, node: Any) -> str:
+        """Dispatches node to its corresponding visitor method."""
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
         return visitor(node)
 
-    def generic_visit(self, node):
-        raise Exception(f"No visit_{type(node).__name__} method")
+    def generic_visit(self, node: Any):
+        raise Exception(f"No visit_{type(node).__name__} method defined")
 
-    def visit_Program(self, node: Program):
+    def visit_Program(self, node: Program) -> str:
         return "\n".join(self.transpile(stmt) for stmt in node.statements)
 
-    def visit_VariableDeclaration(self, node: VariableDeclaration):
+    def visit_VariableDeclaration(self, node: VariableDeclaration) -> str:
         return f"{self.get_indent()}{node.name} = {self.transpile(node.value)}"
 
-    def visit_PrintStatement(self, node: PrintStatement):
+    def visit_PrintStatement(self, node: PrintStatement) -> str:
         exprs = ", ".join(self.transpile(e) for e in node.expressions)
         return f"{self.get_indent()}print({exprs})"
 
-    def visit_FunctionDeclaration(self, node: FunctionDeclaration):
+    def visit_FunctionDeclaration(self, node: FunctionDeclaration) -> str:
         params = ", ".join(node.params)
         header = f"{self.get_indent()}def {node.name}({params}):"
+        
         self.indent_level += 1
         body_lines = [self.transpile(stmt) for stmt in node.body]
         if not body_lines:
             body_lines = [f"{self.get_indent()}pass"]
         self.indent_level -= 1
+        
         body = "\n".join(body_lines)
         return f"{header}\n{body}"
 
-    def visit_IfStatement(self, node: IfStatement):
+    def visit_IfStatement(self, node: IfStatement) -> str:
         header = f"{self.get_indent()}if {self.transpile(node.condition)}:"
+        
         self.indent_level += 1
         then_body = "\n".join(self.transpile(stmt) for stmt in node.then_branch)
         self.indent_level -= 1
+        
         result = f"{header}\n{then_body}"
         if node.else_branch:
             else_header = f"{self.get_indent()}else:"
@@ -50,31 +58,33 @@ class Transpiler:
             result += f"\n{else_header}\n{else_body}"
         return result
 
-    def visit_LoopStatement(self, node: LoopStatement):
+    def visit_LoopStatement(self, node: LoopStatement) -> str:
         header = f"{self.get_indent()}while {self.transpile(node.condition)}:"
+        
         self.indent_level += 1
         body = "\n".join(self.transpile(stmt) for stmt in node.body)
         self.indent_level -= 1
+        
         return f"{header}\n{body}"
 
-    def visit_ReturnStatement(self, node: ReturnStatement):
+    def visit_ReturnStatement(self, node: ReturnStatement) -> str:
         val = self.transpile(node.value) if node.value else ""
         return f"{self.get_indent()}return {val}"
 
-    def visit_BinaryExpression(self, node: BinaryExpression):
+    def visit_BinaryExpression(self, node: BinaryExpression) -> str:
         return f"({self.transpile(node.left)} {node.operator} {self.transpile(node.right)})"
 
-    def visit_UnaryExpression(self, node: UnaryExpression):
+    def visit_UnaryExpression(self, node: UnaryExpression) -> str:
         return f"{node.operator}{self.transpile(node.right)}"
 
-    def visit_CallExpression(self, node: CallExpression):
+    def visit_CallExpression(self, node: CallExpression) -> str:
         args = ", ".join(self.transpile(a) for a in node.arguments)
         return f"{node.callee}({args})"
 
-    def visit_Literal(self, node: Literal):
+    def visit_Literal(self, node: Literal) -> str:
         if isinstance(node.value, str):
             return f'"{node.value}"'
         return str(node.value)
 
-    def visit_Identifier(self, node: Identifier):
+    def visit_Identifier(self, node: Identifier) -> str:
         return node.name

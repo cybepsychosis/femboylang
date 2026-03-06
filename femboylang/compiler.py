@@ -4,24 +4,25 @@ from .semantic import SemanticAnalyzer
 from .transpiler import Transpiler
 
 class Compiler:
+    """The main entry point for the FemboyLang compilation pipeline."""
+
     def __init__(self, source: str):
         self.source = source
 
-    def compile(self):
-        # 1. Lexing
+    def compile(self) -> str:
+        """Runs the full compilation pipeline: Lexing -> Parsing -> Semantic Analysis -> Transpilation."""
+        # Lexical analysis
         lexer = Lexer(self.source)
         tokens = lexer.tokenize()
 
-        # 2. Parsing
+        # Syntax analysis
         parser = Parser(tokens)
         ast = parser.parse()
 
-        # 3. Semantic Analysis
+        # Semantic analysis
         analyzer = SemanticAnalyzer()
         analyzer.analyze(ast)
 
-        # 4. Transpilation
+        # Transpilation to Python
         transpiler = Transpiler()
-        python_code = transpiler.transpile(ast)
-
-        return python_code
+        return transpiler.transpile(ast)

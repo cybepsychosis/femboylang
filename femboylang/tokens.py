@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 class TokenType(Enum):
     # Keywords
-    UWU = auto()      # variable declaration
+    UWU = auto()      # variable
     HAI = auto()      # print
     NYA = auto()      # function
     BAKA = auto()     # if
@@ -40,6 +40,7 @@ class TokenType(Enum):
     EOF = auto()
 
 class Token:
+    """Representation of a lexical token."""
     def __init__(self, type: TokenType, value: any, line: int, column: int):
         self.type = type
         self.value = value
